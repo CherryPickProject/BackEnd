@@ -8,6 +8,6 @@ public class HealthCheckController {
 
 	@GetMapping("/")
 	public String healthCheck() {
-		return "The service is up and running CICD";
+		return "The service is up and running 브런치 테스트";
 	}
 }
