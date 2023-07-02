@@ -41,4 +41,9 @@ public class TestController {
 		return response.success(testService.deleteAllTest(), "success", HttpStatus.OK);
 	}
 
+	@GetMapping("/test")
+	public ResponseEntity<?> getTest() {
+		return response.success("테스트성공","success",HttpStatus.OK);
+	}
+
 }
