@@ -18,7 +18,7 @@ jobs:
 
       - name: Update application.yml
         run: |
-          echo "$(cat charrypickapp/application.yml | sed 's/active: local/active: prod/')" > charrypickapp/application.yml
+          echo "$(cat charrypickapp/src/main/resources/application.yml | sed 's/active: local/active: prod/')" > charrypickapp/src/main/resources/application.yml
 
       - name: Grant execute permission for gradlew
         working-directory: charrypickapp
