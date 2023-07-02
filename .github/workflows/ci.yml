@@ -17,7 +17,8 @@ jobs:
           java-version: '11'
 
       - name: Update application.yml
-        run: sed -i 's/active: local/active: prod/' application.yml
+        run: |
+          echo "$(cat application.yml | sed 's/active: local/active: prod/')" > application.yml
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
