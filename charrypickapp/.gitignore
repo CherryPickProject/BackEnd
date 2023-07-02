@@ -35,3 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# 추가
+cherrypick.pem
+/doc/

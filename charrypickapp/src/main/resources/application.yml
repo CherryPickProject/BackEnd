@@ -8,7 +8,7 @@ spring:
   config:
     name: local
     activate:
-      on-profile:
+      on-profile: local
   resources:
     config-location: classpath:/application-local.yml
 
@@ -18,6 +18,6 @@ spring:
   config:
     name: prod
     activate:
-      on-profile:
+      on-profile: prod
   resources:
     config-location: classpath:/application-prod.yml
