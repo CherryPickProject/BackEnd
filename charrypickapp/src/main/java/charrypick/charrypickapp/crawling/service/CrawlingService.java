@@ -18,10 +18,6 @@ public class CrawlingService {
 	private static final String 부산일보 = "082";
 	private static final String url = baseURL + 부산일보 + "/0001221194";
 
-	public void loop() throws IOException {
-
-	}
-
 	@PostConstruct
 	public void getNewsDatas() {
 		int articleNumber = 1221194; // Initial article number
@@ -77,6 +73,8 @@ public class CrawlingService {
 				if (articleNumber == 1221250) {
 					break;
 				}
+
+
 
 				System.out.println("======================================================");
 

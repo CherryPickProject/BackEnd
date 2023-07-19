@@ -8,4 +8,8 @@ spring:
     show-sql: true
     database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:
-      ddl-auto: create
+      ddl-auto: validate
+    datasource:
+      url: jdbc:mysql://${RDS_HOST}:3306/cherrypick
+      username: ${RDS_USERNAME}
+      password: ${RDS_PASSWORD}

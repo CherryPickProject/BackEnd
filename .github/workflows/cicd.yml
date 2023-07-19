@@ -19,6 +19,12 @@ jobs:
       - name: Update application.yml
         run: |
           echo "$(cat charrypickapp/src/main/resources/application.yml | sed 's/active: local/active: prod/')" > charrypickapp/src/main/resources/application.yml
+      
+      - name: Update application-prod.yml
+        run: |
+          echo "url: jdbc:mysql://${{ secrets.RDS_HOST }}:3306/cherrypick" >> charrypickapp/src/main/resources/application-prod.yml
+          echo "username: ${{ secrets.RDS_USERNAME }}" >> charrypickapp/src/main/resources/application-prod.yml
+          echo "password: ${{ secrets.RDS_PASSWORD }}" >> charrypickapp/src/main/resources/application-prod.yml
 
       - name: Grant execute permission for gradlew
         working-directory: charrypickapp
