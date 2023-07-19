@@ -1,23 +1,41 @@
 package charrypick.charrypickapp.basetest.domain;
 
-import java.time.LocalDateTime;
-import javax.persistence.Column;
-import javax.persistence.EntityListeners;
-import javax.persistence.MappedSuperclass;
 import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import javax.persistence.*;
+import java.io.Serializable;
+import java.time.LocalDateTime;
+
 @EntityListeners(AuditingEntityListener.class)
-@MappedSuperclass
 @Getter
-public class BaseEntity {
+@MappedSuperclass
+public class BaseEntity implements Serializable {
 
 	@CreatedDate
-	@Column(updatable = false) // Entity가 생성된 시간을 수정하면 안되기 때문에 @Column 어노테이션을 통하여 수정 차단
-	private LocalDateTime createdDate; // Entity가 처음으로 생성된 시간
+	@Column(updatable = false)
+	private LocalDateTime createdAt;
 
 	@LastModifiedDate
-	private LocalDateTime lastModified; // Entity가 마지막으로 수정된 시간
+	private LocalDateTime updateAt;
+
+	@Setter
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT true")
+	private Boolean isEnable = true;
+
+	@PrePersist
+	public void prePersist(){
+		LocalDateTime now = LocalDateTime.now();
+		createdAt = now;
+		updateAt = now;
+	}
+
+	@PreUpdate
+	public void preUpdate(){
+		updateAt = LocalDateTime.now();
+	}
+
 }
