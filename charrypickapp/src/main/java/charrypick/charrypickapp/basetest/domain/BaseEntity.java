@@ -16,15 +16,16 @@ import java.time.LocalDateTime;
 public class BaseEntity implements Serializable {
 
 	@CreatedDate
-	@Column(updatable = false)
+	@Column(updatable = false,name = "created_at")
 	private LocalDateTime createdAt;
 
 	@LastModifiedDate
+	@Column(name = "update_at")
 	private LocalDateTime updateAt;
 
-	@Setter
-	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT true")
-	private Boolean isEnable = true;
+//	@Setter
+//	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT true",name = "is_enable")
+//	private Boolean isEnable = true;
 
 	@PrePersist
 	public void prePersist(){

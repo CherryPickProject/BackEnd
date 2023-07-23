@@ -1,27 +1,39 @@
 package charrypick.charrypickapp.crawling.service;
 
+import charrypick.charrypickapp.crawling.domain.Article;
+import charrypick.charrypickapp.crawling.repository.ArticleRepository;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class CrawlingService {
 
+	private final ArticleRepository articleRepository;
 
 	private static final String baseURL = "https://n.news.naver.com/mnews/article/";
 	private static final String 부산일보 = "082";
 	private static final String url = baseURL + 부산일보 + "/0001221194";
 
+
+
 	@PostConstruct
 	public void getNewsDatas() {
+		String mergedKoreanText = "";
 		int articleNumber = 1221194; // Initial article number
 		boolean continueLoop = true;
+		StringBuilder result = new StringBuilder();
 		while (continueLoop) {
 			try {
 
@@ -41,7 +53,7 @@ public class CrawlingService {
 						koreanTextBuilder.append(spanKoreanText);
 					}
 
-					String mergedKoreanText = koreanTextBuilder.toString();
+					mergedKoreanText = koreanTextBuilder.toString();
 					System.out.println("mergedKoreanText = " + mergedKoreanText);
 				}
 				Elements title = document.select("#title_area span");
@@ -68,9 +80,15 @@ public class CrawlingService {
 				for (String image : images) {
 					System.out.println("image = " + image);
 				}
+				for (String image : images) {
+					result.append(image).append(", ");
+				}
+				if (result.length() > 0) {
+					result.setLength(result.length() - 2);
+				}
 				articleNumber++;
 
-				if (articleNumber == 1221250) {
+				if (articleNumber == 1221200) {
 					break;
 				}
 
@@ -78,11 +96,22 @@ public class CrawlingService {
 
 				System.out.println("======================================================");
 
+				Article article = new Article(mergedKoreanText,title.first().ownText(),"부산일보",
+					images.get(0), 1L);
+
+
+//				articleRepository.save(article);
+
 			} catch (Exception e) {
 				// Exception occurred, print the error message and continue the loop
 				System.out.println("Error fetching data for article number: " + articleNumber);
 				e.printStackTrace();
+				if (articleNumber == 1221200) {
+					break;
+				}
+
 				articleNumber++;
+
 			}
 
 		}
