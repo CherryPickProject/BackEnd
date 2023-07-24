@@ -25,11 +25,31 @@ public class CrawlingService {
 
 	private static final String baseURL = "https://n.news.naver.com/mnews/article/";
 	private static final String 부산일보 = "082";
+	private static final String 경향신문 = "032";
+	private static final String 국민일보 = "003";
+	private static final String 동아일보 = "020";
+	private static final String 문화일보 = "021";
+	private static final String 서울신문 = "081";
+	private static final String 세계일보 = "022";
+	private static final String 조선일보 = "032";
+	private static final String 중앙일보 = "052";
+	private static final String 한겨레 = "028";
+	private static final String 한국일보 = "469";
+
+
+
+
+
+
+
+
+
 	private static final String url = baseURL + 부산일보 + "/0001221194";
 
 
 
-	@Scheduled(initialDelay = 120000, fixedDelay = 120000)
+	//@Scheduled(initialDelay = 120000, fixedDelay = 120000)
+	@PostConstruct
 	public void getNewsDatas() {
 		String mergedKoreanText = "";
 		int articleNumber = 1221194; // Initial article number
@@ -39,6 +59,7 @@ public class CrawlingService {
 			try {
 
 				String currentUrl = baseURL + 부산일보 + "/000" + articleNumber;
+				System.out.println("사이트주소 = "+ currentUrl);
 				Document document = Jsoup.connect(currentUrl).get();
 
 				//Document document = Jsoup.connect(url).get();
@@ -73,7 +94,7 @@ public class CrawlingService {
 					}
 					i++;
 				}
-				System.out.println("createTime = " + createTime.ownText());
+				//System.out.println("createTime = " + createTime.ownText());
 				System.out.println("title = " + title.first().ownText());
 				for (Element element : create) {
 					System.out.println("element = " + element.ownText());
@@ -89,7 +110,7 @@ public class CrawlingService {
 				}
 				articleNumber++;
 
-				if (articleNumber == 1221200) {
+				if (articleNumber == 1221220) {
 					break;
 				}
 
@@ -107,7 +128,7 @@ public class CrawlingService {
 				// Exception occurred, print the error message and continue the loop
 				System.out.println("Error fetching data for article number: " + articleNumber);
 				e.printStackTrace();
-				if (articleNumber == 1221200) {
+				if (articleNumber == 1221220) {
 					break;
 				}
 
