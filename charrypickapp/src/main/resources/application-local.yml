@@ -8,6 +8,9 @@ spring:
       ddl-auto: validate
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
+    #    url: jdbc:mysql://database-1.c1ymulo0ueco.ap-northeast-2.rds.amazonaws.com:3306/cherrypick
+    #    username: admin
+    #    password: pw123456789
 
 
   mvc:

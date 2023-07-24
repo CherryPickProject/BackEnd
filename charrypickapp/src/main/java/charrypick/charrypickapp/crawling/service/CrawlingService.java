@@ -12,6 +12,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +29,7 @@ public class CrawlingService {
 
 
 
-	@PostConstruct
+	@Scheduled(initialDelay = 120000, fixedDelay = 120000)
 	public void getNewsDatas() {
 		String mergedKoreanText = "";
 		int articleNumber = 1221194; // Initial article number
