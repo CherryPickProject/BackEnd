@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.util.List;
 
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
@@ -28,15 +29,18 @@ public class Article extends BaseEntity {
 
 	@Column(name = "article_name")
 	private String articleName;
+
 	private String publisher;
+
+	@ElementCollection
 	@Column(name = "article_img_key")
-	private String articleImgKey;
+	private List<String> articleImgKey;
 
 	@Column(name = "like_id")
 	private Long listId;
 
 	@Builder
-	public Article(String contents, String articleName, String publisher, String articleImgKey, Long listId) {
+	public Article(String contents, String articleName, String publisher, List<String> articleImgKey, Long listId) {
 		this.contents = contents;
 		this.articleName = articleName;
 		this.publisher = publisher;

@@ -3,6 +3,8 @@ package charrypick.charrypickapp.crawling.service;
 import charrypick.charrypickapp.crawling.domain.Article;
 import charrypick.charrypickapp.crawling.domain.PressIndex;
 import charrypick.charrypickapp.crawling.repository.ArticleRepository;
+
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,11 +14,14 @@ import javax.annotation.PostConstruct;
 import charrypick.charrypickapp.crawling.repository.PressIndexRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Service
@@ -48,7 +53,8 @@ public class CrawlingService {
 	}
 
 	Map<String, NewspaperInfo> newspaperCodes = new HashMap<String, NewspaperInfo>() {{
-		put("경향신문", new NewspaperInfo("032", "3201884"));
+		//put("경향신문", new NewspaperInfo("032", "3201884"));
+		put("경향신문", new NewspaperInfo("032", "3238750"));
 		put("국민일보", new NewspaperInfo("005", "1583397"));
 		put("동아일보", new NewspaperInfo("020", "3476599"));
 		put("서울신문", new NewspaperInfo("081", "3335707"));
@@ -62,8 +68,9 @@ public class CrawlingService {
 
 
 
-	//@Scheduled(initialDelay = 120000, fixedDelay = 120000)
-	@PostConstruct
+	@Transactional
+	@Scheduled(initialDelay = 10000, fixedDelay = Long.MAX_VALUE)
+	//@PostConstruct
 	public void getNewsDatas() {
 
 		for (Map.Entry<String, NewspaperInfo> entry : newspaperCodes.entrySet()) {
@@ -71,8 +78,9 @@ public class CrawlingService {
 			NewspaperInfo newspaperInfo = entry.getValue();
 
 			String startNum = newspaperInfo.getData();
+			String newsCode = newspaperInfo.getCode();
 
-			if(!pressIndexRepository.findByPress(newspaperName).isEmpty()){
+			if(!pressIndexRepository.findByPress(newspaperName).isPresent()){
 				PressIndex pressIndex = new PressIndex(newspaperName, newspaperInfo.getData());
 				pressIndexRepository.save(pressIndex);
 			} else {
@@ -80,31 +88,16 @@ public class CrawlingService {
 				startNum = pressIndex.getUpdateIndex();
 			}
 
-
-			System.out.println("신문사 이름: " + newspaperName);
-			System.out.println("코드: " + newspaperInfo.getCode());
-			System.out.println("기타 데이터: " + newspaperInfo.getData());
-			System.out.println();
-
 			String mergedKoreanText = "";
-			int articleNumber = 1221194; // Initial article number
 			boolean continueLoop = true;
 			StringBuilder result = new StringBuilder();
-			for (String newspaper : newspaperCodes.keySet()) {
-				if(!pressIndexRepository.findByPress(newspaper).isEmpty()){
-
-				}
-			}
-
-
-
-
 
 
 			while (continueLoop) {
 				try {
 
-					String currentUrl = baseURL + newspaperCodes.get("부산일보") + "/000" + articleNumber;
+					String currentUrl = baseURL + newsCode + "/000" + startNum;
+					//String currentUrl = "https://n.news.naver.com/mnews/article/032/0003238759";
 					System.out.println("사이트주소 = "+ currentUrl);
 					Document document = Jsoup.connect(currentUrl).get();
 
@@ -154,34 +147,53 @@ public class CrawlingService {
 					if (result.length() > 0) {
 						result.setLength(result.length() - 2);
 					}
-					articleNumber++;
 
-					if (articleNumber == 1221220) {
-						break;
-					}
+
+
+
 
 
 
 					System.out.println("======================================================");
 
-					Article article = new Article(mergedKoreanText,title.first().ownText(),"부산일보",
-							images.get(0), 1L);
+					Article article = new Article(mergedKoreanText,title.first().ownText(),newspaperName,
+							images, 1L);
 
 
-//				articleRepository.save(article);
+					articleRepository.save(article);
+
+					int number = Integer.parseInt(startNum);
+					number += 1;
+
+					startNum = (newspaperName == "한국일보") ? String.format("%07d", number) : Integer.toString(number);
+
+				} catch (HttpStatusException e) {
+					System.out.println("httpSta");
+					int number = Integer.parseInt(startNum);
+					number += 1;
+					startNum = (newspaperName == "한국일보") ? String.format("%07d", number) : Integer.toString(number);
+					pressIndexUpdate(newspaperName, startNum);
+					System.out.println("왜 트렌젝션 안됨?");
+					break;
+
 
 				} catch (Exception e) {
 					// Exception occurred, print the error message and continue the loop
-					System.out.println("Error fetching data for article number: " + articleNumber);
+					System.out.println("Error fetching data for article number: " + startNum);
 					e.printStackTrace();
-					if (articleNumber == 1221220) {
-						break;
-					}
 
-					articleNumber++;
 
 				}
 			}
+			break; //임시
 		}
+	}
+
+	@Transactional
+	public void pressIndexUpdate(String newspaperName, String startNum) {
+		System.out.println(startNum);
+		PressIndex pressIndex = pressIndexRepository.findByPress(newspaperName).orElseThrow(NullPointerException::new);
+		System.out.println("pressIndex.getPress() ffff = " + pressIndex.getPress());
+		pressIndex.setUpdateIndex(startNum);
 	}
 }

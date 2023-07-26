@@ -25,4 +25,8 @@ public class PressIndex {
         this.press = press;
         this.updateIndex = updateIndex;
     }
+
+    public void setUpdateIndex(String updateIndex) {
+        this.updateIndex = updateIndex;
+    }
 }
