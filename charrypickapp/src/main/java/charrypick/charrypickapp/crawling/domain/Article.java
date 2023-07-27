@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -27,24 +28,25 @@ public class Article extends BaseEntity {
 	@Column(columnDefinition="TEXT")
 	private String contents;
 
-	@Column(name = "article_name")
-	private String articleName;
+	private String title;
 
 	private String publisher;
+	private String reporter;
+	private String uploadDate;
 
-	@ElementCollection
-	@Column(name = "article_img_key")
-	private List<String> articleImgKey;
 
-	@Column(name = "like_id")
-	private Long listId;
+	@OneToMany(mappedBy = "article", fetch = FetchType.LAZY)
+	private List<ArticlePhoto> articlePhoto = new ArrayList<>();
 
-	@Builder
-	public Article(String contents, String articleName, String publisher, List<String> articleImgKey, Long listId) {
+	@Column(nullable = false, columnDefinition = "INTEGER DEFAULT 0")
+	private int likeCount = 0;
+
+	public Article(String contents, String title, String publisher, String reporter, String uploadDate, int likeCount) {
 		this.contents = contents;
-		this.articleName = articleName;
+		this.title = title;
 		this.publisher = publisher;
-		this.articleImgKey = articleImgKey;
-		this.listId = listId;
+		this.reporter = reporter;
+		this.uploadDate = uploadDate;
+		this.likeCount = likeCount;
 	}
 }

@@ -1,14 +1,13 @@
 package charrypick.charrypickapp.crawling.service;
 
 import charrypick.charrypickapp.crawling.domain.Article;
+import charrypick.charrypickapp.crawling.domain.ArticlePhoto;
 import charrypick.charrypickapp.crawling.domain.PressIndex;
+import charrypick.charrypickapp.crawling.repository.ArticlePhotoRepository;
 import charrypick.charrypickapp.crawling.repository.ArticleRepository;
 
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.annotation.PostConstruct;
 
 import charrypick.charrypickapp.crawling.repository.PressIndexRepository;
@@ -31,6 +30,7 @@ public class CrawlingService {
 
 	private final ArticleRepository articleRepository;
 	private final PressIndexRepository pressIndexRepository;
+	private final ArticlePhotoRepository articlePhotoRepository;
 
 	private static final String baseURL = "https://n.news.naver.com/mnews/article/";
 
@@ -92,6 +92,7 @@ public class CrawlingService {
 			boolean continueLoop = true;
 			StringBuilder result = new StringBuilder();
 
+			int exceptionCount = 0;
 
 			while (continueLoop) {
 				try {
@@ -133,10 +134,12 @@ public class CrawlingService {
 						}
 						i++;
 					}
+					StringJoiner joiner = new StringJoiner(",");
 					//System.out.println("createTime = " + createTime.ownText());
 					System.out.println("title = " + title.first().ownText());
 					for (Element element : create) {
 						System.out.println("element = " + element.ownText());
+						joiner.add(element.ownText());
 					}
 					for (String image : images) {
 						System.out.println("image = " + image);
@@ -156,37 +159,58 @@ public class CrawlingService {
 
 					System.out.println("======================================================");
 
-					Article article = new Article(mergedKoreanText,title.first().ownText(),newspaperName,
-							images, 1L);
-
-
-					articleRepository.save(article);
+					Article article = saveArticle(newspaperName, mergedKoreanText, title, createTime, joiner);
+					saveArticlePhoto(images, article);
 
 					int number = Integer.parseInt(startNum);
 					number += 1;
 
 					startNum = (newspaperName == "한국일보") ? String.format("%07d", number) : Integer.toString(number);
+					exceptionCount = 10;
 
 				} catch (HttpStatusException e) {
 					System.out.println("httpSta");
 					int number = Integer.parseInt(startNum);
 					number += 1;
 					startNum = (newspaperName == "한국일보") ? String.format("%07d", number) : Integer.toString(number);
-					pressIndexUpdate(newspaperName, startNum);
-					System.out.println("왜 트렌젝션 안됨?");
-					break;
+
+					exceptionCount ++;
+					if (exceptionCount == 10) {
+						number -= 10;
+						startNum = (newspaperName == "한국일보") ? String.format("%07d", number) : Integer.toString(number);
+						pressIndexUpdate(newspaperName, startNum);
+						break;
+					}
 
 
 				} catch (Exception e) {
 					// Exception occurred, print the error message and continue the loop
 					System.out.println("Error fetching data for article number: " + startNum);
 					e.printStackTrace();
+					int number = Integer.parseInt(startNum);
+					number += 1;
+					startNum = (newspaperName == "한국일보") ? String.format("%07d", number) : Integer.toString(number);
 
 
 				}
 			}
 			break; //임시
 		}
+	}
+
+	@Transactional
+	public void saveArticlePhoto(List<String> images, Article article) {
+		for (String image : images) {
+			ArticlePhoto articlePhoto = new ArticlePhoto(article, image);
+			articlePhotoRepository.save(articlePhoto);
+		}
+	}
+
+	@Transactional
+	public Article saveArticle(String newspaperName, String mergedKoreanText, Elements title, Element createTime, StringJoiner joiner) {
+		Article article = new Article(mergedKoreanText, title.first().ownText(), newspaperName, joiner.toString(), createTime.text(),0);
+		articleRepository.save(article);
+		return article;
 	}
 
 	@Transactional
