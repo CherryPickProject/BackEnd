@@ -34,6 +34,10 @@ public class Article extends BaseEntity {
 	private String reporter;
 	private String uploadDate;
 
+	@Enumerated(EnumType.STRING)
+	@Column(name = "industry")
+	private Industry industry;
+
 
 	@OneToMany(mappedBy = "article", fetch = FetchType.LAZY)
 	private List<ArticlePhoto> articlePhoto = new ArrayList<>();
@@ -41,12 +45,13 @@ public class Article extends BaseEntity {
 	@Column(nullable = false, columnDefinition = "INTEGER DEFAULT 0")
 	private int likeCount = 0;
 
-	public Article(String contents, String title, String publisher, String reporter, String uploadDate, int likeCount) {
+	public Article(String contents, String title, String publisher, String reporter, String uploadDate, int likeCount, Industry industry) {
 		this.contents = contents;
 		this.title = title;
 		this.publisher = publisher;
 		this.reporter = reporter;
 		this.uploadDate = uploadDate;
 		this.likeCount = likeCount;
+		this.industry = industry;
 	}
 }

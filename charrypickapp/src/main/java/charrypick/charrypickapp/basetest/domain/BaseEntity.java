@@ -23,9 +23,9 @@ public class BaseEntity implements Serializable {
 	@Column(name = "update_at")
 	private LocalDateTime updateAt;
 
-//	@Setter
-//	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT true",name = "is_enable")
-//	private Boolean isEnable = true;
+	@Setter
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT true")
+	private Boolean isEnable = true;
 
 	@PrePersist
 	public void prePersist(){

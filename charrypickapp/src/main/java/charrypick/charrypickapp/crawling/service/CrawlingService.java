@@ -2,10 +2,12 @@ package charrypick.charrypickapp.crawling.service;
 
 import charrypick.charrypickapp.crawling.domain.Article;
 import charrypick.charrypickapp.crawling.domain.ArticlePhoto;
+import charrypick.charrypickapp.crawling.domain.Industry;
 import charrypick.charrypickapp.crawling.domain.PressIndex;
 import charrypick.charrypickapp.crawling.repository.ArticlePhotoRepository;
 import charrypick.charrypickapp.crawling.repository.ArticleRepository;
 
+import java.util.Random;
 import java.security.SecureRandom;
 import java.util.*;
 import javax.annotation.PostConstruct;
@@ -52,23 +54,36 @@ public class CrawlingService {
 		}
 	}
 
+	//진짜 데이터
+//	Map<String, NewspaperInfo> newspaperCodes = new HashMap<String, NewspaperInfo>() {{
+//		put("경향신문", new NewspaperInfo("032", "3201884"));
+//		put("국민일보", new NewspaperInfo("005", "1583397"));
+//		put("동아일보", new NewspaperInfo("020", "3476599"));
+//		put("서울신문", new NewspaperInfo("081", "3335707"));
+//		put("세계일보", new NewspaperInfo("022", "3778772"));
+//		put("조선일보", new NewspaperInfo("032", "3743316"));
+//		put("중앙일보", new NewspaperInfo("025", "3256539"));
+//		put("한겨레", new NewspaperInfo("028", "2625266"));
+//		put("한국일보", new NewspaperInfo("469", "0720810"));
+//	}};
+
 	Map<String, NewspaperInfo> newspaperCodes = new HashMap<String, NewspaperInfo>() {{
-		//put("경향신문", new NewspaperInfo("032", "3201884"));
 		put("경향신문", new NewspaperInfo("032", "3238750"));
-		put("국민일보", new NewspaperInfo("005", "1583397"));
-		put("동아일보", new NewspaperInfo("020", "3476599"));
-		put("서울신문", new NewspaperInfo("081", "3335707"));
-		put("세계일보", new NewspaperInfo("022", "3778772"));
-		put("조선일보", new NewspaperInfo("032", "3743316"));
-		put("중앙일보", new NewspaperInfo("025", "3256539"));
-		put("한겨레", new NewspaperInfo("028", "2625266"));
-		put("한국일보", new NewspaperInfo("469", "0720810"));
+		put("국민일보", new NewspaperInfo("005", "1626553"));
+		//put("동아일보", new NewspaperInfo("020", "3511666"));
+		//put("서울신문", new NewspaperInfo("081", "3380320"));
+		//put("세계일보", new NewspaperInfo("022", "3838522"));
+		//put("조선일보", new NewspaperInfo("032", "3778238"));
+//		put("중앙일보", new NewspaperInfo("025", "3296802"));
+//		put("한겨레", new NewspaperInfo("028", "2649855"));
+//		put("한국일보", new NewspaperInfo("469", "0751943"));
 	}};
 
 
 
 
-	@Transactional
+
+	//@Transactional
 	@Scheduled(initialDelay = 10000, fixedDelay = Long.MAX_VALUE)
 	//@PostConstruct
 	public void getNewsDatas() {
@@ -98,7 +113,7 @@ public class CrawlingService {
 				try {
 
 					String currentUrl = baseURL + newsCode + "/000" + startNum;
-					//String currentUrl = "https://n.news.naver.com/mnews/article/032/0003238759";
+					//String currentUrl = "https://n.news.naver.com/mnews/article/032/0003202217";
 					System.out.println("사이트주소 = "+ currentUrl);
 					Document document = Jsoup.connect(currentUrl).get();
 
@@ -159,14 +174,13 @@ public class CrawlingService {
 
 					System.out.println("======================================================");
 
-					Article article = saveArticle(newspaperName, mergedKoreanText, title, createTime, joiner);
+					Industry randomIndustry = getRandomIndustry();
+					Article article = saveArticle(newspaperName, mergedKoreanText, title, createTime, joiner,randomIndustry);
 					saveArticlePhoto(images, article);
 
 					int number = Integer.parseInt(startNum);
 					number += 1;
-
 					startNum = (newspaperName == "한국일보") ? String.format("%07d", number) : Integer.toString(number);
-					exceptionCount = 10;
 
 				} catch (HttpStatusException e) {
 					System.out.println("httpSta");
@@ -175,26 +189,27 @@ public class CrawlingService {
 					startNum = (newspaperName == "한국일보") ? String.format("%07d", number) : Integer.toString(number);
 
 					exceptionCount ++;
+					System.out.println("exceptionCount = " + exceptionCount);
 					if (exceptionCount == 10) {
 						number -= 10;
 						startNum = (newspaperName == "한국일보") ? String.format("%07d", number) : Integer.toString(number);
 						pressIndexUpdate(newspaperName, startNum);
-						break;
+						continueLoop = false;
 					}
 
 
 				} catch (Exception e) {
 					// Exception occurred, print the error message and continue the loop
 					System.out.println("Error fetching data for article number: " + startNum);
-					e.printStackTrace();
 					int number = Integer.parseInt(startNum);
 					number += 1;
 					startNum = (newspaperName == "한국일보") ? String.format("%07d", number) : Integer.toString(number);
+					e.printStackTrace();
 
 
 				}
 			}
-			break; //임시
+			//break; //임시
 		}
 	}
 
@@ -207,8 +222,8 @@ public class CrawlingService {
 	}
 
 	@Transactional
-	public Article saveArticle(String newspaperName, String mergedKoreanText, Elements title, Element createTime, StringJoiner joiner) {
-		Article article = new Article(mergedKoreanText, title.first().ownText(), newspaperName, joiner.toString(), createTime.text(),0);
+	public Article saveArticle(String newspaperName, String mergedKoreanText, Elements title, Element createTime, StringJoiner joiner, Industry randomIndustry) {
+		Article article = new Article(mergedKoreanText, title.first().ownText(), newspaperName, joiner.toString(), createTime.text(),0, randomIndustry);
 		articleRepository.save(article);
 		return article;
 	}
@@ -219,5 +234,12 @@ public class CrawlingService {
 		PressIndex pressIndex = pressIndexRepository.findByPress(newspaperName).orElseThrow(NullPointerException::new);
 		System.out.println("pressIndex.getPress() ffff = " + pressIndex.getPress());
 		pressIndex.setUpdateIndex(startNum);
+	}
+
+	public static Industry getRandomIndustry() {
+		Random random = new Random();
+		Industry[] industries = Industry.values();
+		int randomIndex = random.nextInt(industries.length);
+		return industries[randomIndex];
 	}
 }
