@@ -4,9 +4,15 @@ import charrypick.charrypickapp.crawling.domain.Article;
 import charrypick.charrypickapp.crawling.domain.ArticlePhoto;
 import charrypick.charrypickapp.crawling.domain.Industry;
 import charrypick.charrypickapp.crawling.domain.PressIndex;
+import charrypick.charrypickapp.crawling.dto.KeywordManager;
 import charrypick.charrypickapp.crawling.repository.ArticlePhotoRepository;
 import charrypick.charrypickapp.crawling.repository.ArticleRepository;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Random;
 import java.security.SecureRandom;
 import java.util.*;
@@ -15,6 +21,7 @@ import javax.annotation.PostConstruct;
 import charrypick.charrypickapp.crawling.repository.PressIndexRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.bytebuddy.asm.Advice.Local;
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -70,13 +77,13 @@ public class CrawlingService {
 	Map<String, NewspaperInfo> newspaperCodes = new HashMap<String, NewspaperInfo>() {{
 		put("경향신문", new NewspaperInfo("032", "3238750"));
 		put("국민일보", new NewspaperInfo("005", "1626553"));
-		//put("동아일보", new NewspaperInfo("020", "3511666"));
-		//put("서울신문", new NewspaperInfo("081", "3380320"));
-		//put("세계일보", new NewspaperInfo("022", "3838522"));
-		//put("조선일보", new NewspaperInfo("032", "3778238"));
-//		put("중앙일보", new NewspaperInfo("025", "3296802"));
-//		put("한겨레", new NewspaperInfo("028", "2649855"));
-//		put("한국일보", new NewspaperInfo("469", "0751943"));
+		put("동아일보", new NewspaperInfo("020", "3511666"));
+		put("서울신문", new NewspaperInfo("081", "3380320"));
+		put("세계일보", new NewspaperInfo("022", "3838522"));
+		put("조선일보", new NewspaperInfo("032", "3778238"));
+		put("중앙일보", new NewspaperInfo("025", "3296802"));
+		put("한겨레", new NewspaperInfo("028", "2649855"));
+		put("한국일보", new NewspaperInfo("469", "0751943"));
 	}};
 
 
@@ -174,8 +181,33 @@ public class CrawlingService {
 
 					System.out.println("======================================================");
 
-					Industry randomIndustry = getRandomIndustry();
-					Article article = saveArticle(newspaperName, mergedKoreanText, title, createTime, joiner,randomIndustry);
+					//Industry randomIndustry = getRandomIndustry();
+
+					//------------------------------
+					Map<Industry, Integer> countMap = new HashMap<>();
+
+					// 모든 Industry enum에 대해서 반복하면서 단어 개수를 세어 countMap에 저장합니다.
+					for (Industry industry : Industry.values()) {
+						List<String> keywords = KeywordManager.getKeywordsForIndustry(industry);
+						int count = countKeywords(mergedKoreanText, keywords);
+						countMap.put(industry, count);
+					}
+
+					// countMap에서 가장 큰 값을 가지는 enum을 찾습니다.
+					Industry largestIndustry = findLargestIndustry(countMap);
+
+					System.out.println("가장 큰 값을 가지는 직군: " + largestIndustry);
+					System.out.println("키워드 개수: " + countMap.get(largestIndustry));
+					if (countMap.get(largestIndustry) < 4) {
+						throw new KeywordCountException("너무 적은 키워드 개수입니다.");
+					}
+
+
+
+					//-------------------------------------
+
+					LocalDateTime dateTime = convertStringToLocalDateTime(createTime.text());
+					Article article = saveArticle(newspaperName, mergedKoreanText, title, dateTime, joiner,largestIndustry);
 					saveArticlePhoto(images, article);
 
 					int number = Integer.parseInt(startNum);
@@ -222,8 +254,8 @@ public class CrawlingService {
 	}
 
 	@Transactional
-	public Article saveArticle(String newspaperName, String mergedKoreanText, Elements title, Element createTime, StringJoiner joiner, Industry randomIndustry) {
-		Article article = new Article(mergedKoreanText, title.first().ownText(), newspaperName, joiner.toString(), createTime.text(),0, randomIndustry);
+	public Article saveArticle(String newspaperName, String mergedKoreanText, Elements title, LocalDateTime createTime, StringJoiner joiner, Industry randomIndustry) {
+		Article article = new Article(mergedKoreanText, title.first().ownText(), newspaperName, joiner.toString(), createTime,0, randomIndustry);
 		articleRepository.save(article);
 		return article;
 	}
@@ -242,4 +274,57 @@ public class CrawlingService {
 		int randomIndex = random.nextInt(industries.length);
 		return industries[randomIndex];
 	}
+
+
+	private static Industry findLargestIndustry(Map<Industry, Integer> countMap) {
+		Industry largestIndustry = null;
+		int largestCount = -1;
+
+		for (Map.Entry<Industry, Integer> entry : countMap.entrySet()) {
+			Industry industry = entry.getKey();
+			int count = entry.getValue();
+
+			if (count > largestCount) {
+				largestIndustry = industry;
+				largestCount = count;
+			}
+		}
+
+		return largestIndustry;
+	}
+
+	private static int countKeywords(String text, List<String> keywords) {
+		int count = 0;
+		for (String keyword : keywords) {
+			// 단어 개수를 세는 로직 (대소문자 구분 없이 검색)
+			int index = 0;
+			while (index != -1) {
+				index = text.indexOf(keyword, index);
+				if (index != -1) {
+					count++;
+					index += keyword.length();
+				}
+			}
+		}
+		return count;
+	}
+
+	static class KeywordCountException extends Exception {
+		public KeywordCountException(String message) {
+			super(message);
+		}
+	}
+
+	public static LocalDateTime convertStringToLocalDateTime(String dateString) {
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd. a h:mm");
+		try {
+			return LocalDateTime.parse(dateString, formatter);
+		} catch (DateTimeParseException e) {
+			e.printStackTrace();
+			// 또는 다른 예외 처리 방법을 선택할 수 있습니다.
+			return null;
+		}
+	}
+
+
 }

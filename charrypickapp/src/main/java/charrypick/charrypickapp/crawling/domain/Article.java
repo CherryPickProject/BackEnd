@@ -5,6 +5,8 @@ package charrypick.charrypickapp.crawling.domain;
 
 
 import charrypick.charrypickapp.basetest.domain.BaseEntity;
+import java.time.LocalDateTime;
+import java.util.Date;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -32,7 +34,8 @@ public class Article extends BaseEntity {
 
 	private String publisher;
 	private String reporter;
-	private String uploadDate;
+
+	private LocalDateTime uploaded_at;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "industry")
@@ -45,12 +48,12 @@ public class Article extends BaseEntity {
 	@Column(nullable = false, columnDefinition = "INTEGER DEFAULT 0")
 	private int likeCount = 0;
 
-	public Article(String contents, String title, String publisher, String reporter, String uploadDate, int likeCount, Industry industry) {
+	public Article(String contents, String title, String publisher, String reporter, LocalDateTime  uploaded_at, int likeCount, Industry industry) {
 		this.contents = contents;
 		this.title = title;
 		this.publisher = publisher;
 		this.reporter = reporter;
-		this.uploadDate = uploadDate;
+		this.uploaded_at = uploaded_at;
 		this.likeCount = likeCount;
 		this.industry = industry;
 	}
