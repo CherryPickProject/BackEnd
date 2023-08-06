@@ -34,7 +34,7 @@ public class KeywordManager {
 		industryKeywordsMap.put(Industry.SHIPPING, Arrays.asList("LNG", "HMM", "IMO", "HD현대", "TEU",
 			"해양수산부", "현대글로비스", "SCFI", "국제해사기구", "폴라리스쉬핑", "흥아해운", "대한해운"));
 		industryKeywordsMap.put(Industry.FNB, Arrays.asList("두산로보틱스", "한탑", "대한제당", "동원F&B", "오리온",
-			"풀무원", "오뚜기", "CJ제일제당", "롯데칠성", "대상", "삼양", "농심"));
+			"풀무원", "오뚜기", "CJ제일제당", "롯데칠성", "대상주식회사", "삼양", "농심"));
 		industryKeywordsMap.put(Industry.RETAIL_DISTRIBUTION, Arrays.asList("백화점", "RBSI", "BGF리테일",
 			"대한상공회의소", "신세계", "이마트", "CJ ENM", "롯데쇼핑", "현대백화점", "GS리테일", "커넥트웨이브", "호텔신라"));
 		industryKeywordsMap.put(Industry.CONSTRUCTION, Arrays.asList("현대건설", "GS건설", "HD현대건설기계",

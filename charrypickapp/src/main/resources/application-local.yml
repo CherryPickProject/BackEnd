@@ -5,15 +5,15 @@ spring:
     show-sql: true
     database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-#    url: jdbc:mysql://database-1.c1ymulo0ueco.ap-northeast-2.rds.amazonaws.com:3306/cherrypick
-#    username: admin
-#    password: pw123456789
-    url: jdbc:mysql://cherrypick-rds.cije20wikun0.ap-northeast-2.rds.amazonaws.com:3306/cherrypick
-    username: cherrypick
-    password: cherrypick1234!
+    url: jdbc:mysql://database-1.c1ymulo0ueco.ap-northeast-2.rds.amazonaws.com:3306/cherrypick
+    username: admin
+    password: pw123456789
+#    url: jdbc:mysql://cherrypick-rds.cije20wikun0.ap-northeast-2.rds.amazonaws.com:3306/cherrypick
+#    username: cherrypick
+#    password: cherrypick1234!
 
   mvc:
     pathmatch:

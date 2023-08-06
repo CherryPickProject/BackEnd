@@ -126,10 +126,18 @@ public class CrawlingService {
 
 					//Document document = Jsoup.connect(url).get();
 
-					//Elements contents = document.select("#dic_area");
 					Element dicArea = document.select("#dic_area").first();
 					if (dicArea != null) {
-						StringBuilder koreanTextBuilder = new StringBuilder(dicArea.ownText());
+						// dicArea 요소의 내용을 HTML 형식 그대로 문자열로 추출합니다.
+						String dicAreaHtml = dicArea.outerHtml();
+
+						// <br><br>를 "enter"로 대체합니다.
+						dicAreaHtml = dicAreaHtml.replaceAll("<br><br>", " enter ");
+
+						// 변경된 HTML 문자열을 다시 Element 객체로 변환합니다.
+						Document doc = Jsoup.parse(dicAreaHtml);
+						Element restoredDicArea = doc.select("#dic_area").first();
+						StringBuilder koreanTextBuilder = new StringBuilder(restoredDicArea.ownText());
 
 						Elements spanElements = dicArea.select("span[data-type=ore]");
 						for (Element spanElement : spanElements) {
@@ -138,22 +146,35 @@ public class CrawlingService {
 						}
 
 						mergedKoreanText = koreanTextBuilder.toString();
+
 						System.out.println("mergedKoreanText = " + mergedKoreanText);
 					}
 					Elements title = document.select("#title_area span");
 					Elements create = document.select(".media_end_head_journalist_name");
 					Element createTime = document.select("._ARTICLE_DATE_TIME").first();
 
-					int i = 1;
 					List<String> images = new ArrayList<>();
+					List<String> imgDesc = new ArrayList<>();
+					int i = 1;
 					while (true) {
 						String imgId = "img" + i;
 						Element htmlImage = document.select("#" + imgId).first();
+						String descClass = ".img_desc";
+						Elements htmlDescElements = document.select(descClass);
+
 						if (htmlImage != null) {
 							images.add(htmlImage.attr("data-src"));
 						} else {
 							break; // 루프 중지
 						}
+
+						if (!htmlDescElements.isEmpty()) {
+							Element htmlDesc = htmlDescElements.get(i - 1);
+							imgDesc.add(htmlDesc.text());
+						} else {
+							imgDesc.add(""); // 해당 클래스의 텍스트가 없을 경우 빈 문자열 추가
+						}
+
 						i++;
 					}
 					StringJoiner joiner = new StringJoiner(",");
@@ -186,19 +207,40 @@ public class CrawlingService {
 					//------------------------------
 					Map<Industry, Integer> countMap = new HashMap<>();
 
-					// 모든 Industry enum에 대해서 반복하면서 단어 개수를 세어 countMap에 저장합니다.
+// 모든 Industry enum에 대해서 반복하면서 단어 개수를 세어 countMap에 저장합니다.
 					for (Industry industry : Industry.values()) {
 						List<String> keywords = KeywordManager.getKeywordsForIndustry(industry);
 						int count = countKeywords(mergedKoreanText, keywords);
+
+						// 추가 조건 적용: Industry.DISPLAY 분류가 "TV+다른키워드" 또는 "스마트폰+다른키워드"가 총 4개 이상의 키워드를 가지는 경우에만 선택
+						if (industry == Industry.DISPLAY) {
+							List<String> tvKeywords = KeywordManager.getKeywordsForIndustry(Industry.DISPLAY);
+							List<String> smartphoneKeywords = KeywordManager.getKeywordsForIndustry(Industry.MOBILE);
+							boolean hasTVAndOtherKeywords = countKeywords(mergedKoreanText, tvKeywords) >= 2;
+							boolean hasSmartphoneAndOtherKeywords = countKeywords(mergedKoreanText, smartphoneKeywords) >= 2;
+
+							if (!(hasTVAndOtherKeywords || hasSmartphoneAndOtherKeywords)) {
+								count = 0; // 조건을 만족하지 않으면 0으로 설정하여 선택되지 않도록 합니다.
+							}
+						}
+
+						// 추가 조건 적용: Industry.CONSTRUCTION, Industry.FIBER_CLOTHING, Industry.HOTEL_TRAVEL, Industry.PETROLEUM_CHEMICAL, Industry.SHIPBUILDING, Industry.SHIPPING이 총 3개 이상의 키워드를 가지는 경우에만 선택
+						if (industry == Industry.CONSTRUCTION || industry == Industry.FIBER_CLOTHING || industry == Industry.HOTEL_TRAVEL ||
+							industry == Industry.PETROLEUM_CHEMICAL || industry == Industry.SHIPBUILDING || industry == Industry.SHIPPING) {
+							if (count < 3) {
+								count = 0; // 조건을 만족하지 않으면 0으로 설정하여 선택되지 않도록 합니다.
+							}
+						}
+
 						countMap.put(industry, count);
 					}
 
-					// countMap에서 가장 큰 값을 가지는 enum을 찾습니다.
+// countMap에서 가장 큰 값을 가지는 enum을 찾습니다.
 					Industry largestIndustry = findLargestIndustry(countMap);
 
 					System.out.println("가장 큰 값을 가지는 직군: " + largestIndustry);
 					System.out.println("키워드 개수: " + countMap.get(largestIndustry));
-					if (countMap.get(largestIndustry) < 4) {
+					if (countMap.get(largestIndustry) < 3) {
 						throw new KeywordCountException("너무 적은 키워드 개수입니다.");
 					}
 
@@ -208,7 +250,7 @@ public class CrawlingService {
 
 					LocalDateTime dateTime = convertStringToLocalDateTime(createTime.text());
 					Article article = saveArticle(newspaperName, mergedKoreanText, title, dateTime, joiner,largestIndustry);
-					saveArticlePhoto(images, article);
+					saveArticlePhoto(images, article, imgDesc);
 
 					int number = Integer.parseInt(startNum);
 					number += 1;
@@ -246,9 +288,16 @@ public class CrawlingService {
 	}
 
 	@Transactional
-	public void saveArticlePhoto(List<String> images, Article article) {
-		for (String image : images) {
-			ArticlePhoto articlePhoto = new ArticlePhoto(article, image);
+	public void saveArticlePhoto(List<String> images, Article article, List<String> imgDesc) {
+		if (images.size() != imgDesc.size()) {
+			throw new IllegalArgumentException("images와 imgDesc의 크기가 같아야 합니다.");
+		}
+
+		for (int i = 0; i < images.size(); i++) {
+			String image = images.get(i);
+			String desc = imgDesc.get(i);
+
+			ArticlePhoto articlePhoto = new ArticlePhoto(article, image, desc);
 			articlePhotoRepository.save(articlePhoto);
 		}
 	}

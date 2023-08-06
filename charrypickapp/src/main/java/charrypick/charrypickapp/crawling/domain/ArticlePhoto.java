@@ -1,6 +1,8 @@
 package charrypick.charrypickapp.crawling.domain;
 
 import charrypick.charrypickapp.basetest.domain.BaseEntity;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,10 +25,14 @@ public class ArticlePhoto extends BaseEntity {
 
     private String articleImgUrl;
 
+    private String imgDesc;
+
     @Builder
-    public ArticlePhoto(Article article, String articleImgUrl) {
+    public ArticlePhoto(Article article, String articleImgUrl, String imgDesc) {
         this.article = article;
         this.articleImgUrl = articleImgUrl;
+        this.imgDesc = imgDesc;
+
         article.getArticlePhoto().add(this);
     }
 }
