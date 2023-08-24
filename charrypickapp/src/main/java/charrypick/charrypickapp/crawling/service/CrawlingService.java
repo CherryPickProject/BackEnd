@@ -8,20 +8,22 @@ import charrypick.charrypickapp.crawling.dto.KeywordManager;
 import charrypick.charrypickapp.crawling.repository.ArticlePhotoRepository;
 import charrypick.charrypickapp.crawling.repository.ArticleRepository;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Random;
-import java.security.SecureRandom;
+
 import java.util.*;
-import javax.annotation.PostConstruct;
+
 
 import charrypick.charrypickapp.crawling.repository.PressIndexRepository;
+
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.bytebuddy.asm.Advice.Local;
+
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -91,7 +93,8 @@ public class CrawlingService {
 
 
 	//@Transactional
-	@Scheduled(initialDelay = 10000, fixedDelay = Long.MAX_VALUE)
+	@Scheduled(initialDelay = 1000, fixedRate = 24 * 60 * 60 * 1000)
+	//@Scheduled(initialDelay = 10000, fixedRate = 3 * 60 * 60 * 1000) // 3시간 간격으로 실행
 	//@PostConstruct
 	public void getNewsDatas() {
 
@@ -102,13 +105,7 @@ public class CrawlingService {
 			String startNum = newspaperInfo.getData();
 			String newsCode = newspaperInfo.getCode();
 
-			if(!pressIndexRepository.findByPress(newspaperName).isPresent()){
-				PressIndex pressIndex = new PressIndex(newspaperName, newspaperInfo.getData());
-				pressIndexRepository.save(pressIndex);
-			} else {
-				PressIndex pressIndex = pressIndexRepository.findByPress(newspaperName).get();
-				startNum = pressIndex.getUpdateIndex();
-			}
+			startNum = getStartNum(newspaperName, newspaperInfo, startNum);
 
 			String mergedKoreanText = "";
 			boolean continueLoop = true;
@@ -132,7 +129,7 @@ public class CrawlingService {
 						String dicAreaHtml = dicArea.outerHtml();
 
 						// <br><br>를 "enter"로 대체합니다.
-						dicAreaHtml = dicAreaHtml.replaceAll("<br><br>", " enter ");
+						dicAreaHtml = dicAreaHtml.replaceAll("<br><br>", " \\\\n ");
 
 						// 변경된 HTML 문자열을 다시 Element 객체로 변환합니다.
 						Document doc = Jsoup.parse(dicAreaHtml);
@@ -249,13 +246,14 @@ public class CrawlingService {
 					//-------------------------------------
 
 					LocalDateTime dateTime = convertStringToLocalDateTime(createTime.text());
-					Article article = saveArticle(newspaperName, mergedKoreanText, title, dateTime, joiner,largestIndustry);
+					Article article = saveArticle(newspaperName, mergedKoreanText, title, dateTime, joiner,currentUrl ,largestIndustry);
 					saveArticlePhoto(images, article, imgDesc);
 
 					int number = Integer.parseInt(startNum);
 					number += 1;
 					startNum = (newspaperName == "한국일보") ? String.format("%07d", number) : Integer.toString(number);
 
+					exceptionCount = 0;
 				} catch (HttpStatusException e) {
 					System.out.println("httpSta");
 					int number = Integer.parseInt(startNum);
@@ -269,6 +267,7 @@ public class CrawlingService {
 						startNum = (newspaperName == "한국일보") ? String.format("%07d", number) : Integer.toString(number);
 						pressIndexUpdate(newspaperName, startNum);
 						continueLoop = false;
+						System.out.println(" = asdfasdfasdf");
 					}
 
 
@@ -285,6 +284,20 @@ public class CrawlingService {
 			}
 			//break; //임시
 		}
+
+
+	}
+
+	@Transactional
+	public String getStartNum(String newspaperName, NewspaperInfo newspaperInfo, String startNum) {
+		if(!pressIndexRepository.findByPress(newspaperName).isPresent()){
+			PressIndex pressIndex = new PressIndex(newspaperName, newspaperInfo.getData());
+			pressIndexRepository.save(pressIndex);
+		} else {
+			PressIndex pressIndex = pressIndexRepository.findByPress(newspaperName).get();
+			startNum = pressIndex.getUpdateIndex();
+		}
+		return startNum;
 	}
 
 	@Transactional
@@ -303,8 +316,8 @@ public class CrawlingService {
 	}
 
 	@Transactional
-	public Article saveArticle(String newspaperName, String mergedKoreanText, Elements title, LocalDateTime createTime, StringJoiner joiner, Industry randomIndustry) {
-		Article article = new Article(mergedKoreanText, title.first().ownText(), newspaperName, joiner.toString(), createTime,0, randomIndustry);
+	public Article saveArticle(String newspaperName, String mergedKoreanText, Elements title, LocalDateTime createTime, StringJoiner joiner, String url,Industry randomIndustry) {
+		Article article = new Article(mergedKoreanText, title.first().ownText(), newspaperName, joiner.toString(), createTime,0, url,randomIndustry);
 		articleRepository.save(article);
 		return article;
 	}
@@ -312,9 +325,12 @@ public class CrawlingService {
 	@Transactional
 	public void pressIndexUpdate(String newspaperName, String startNum) {
 		System.out.println(startNum);
-		PressIndex pressIndex = pressIndexRepository.findByPress(newspaperName).orElseThrow(NullPointerException::new);
+		PressIndex pressIndexPost = pressIndexRepository.findByPress(newspaperName).orElseThrow(NullPointerException::new);
+		pressIndexRepository.delete(pressIndexPost);
+		PressIndex pressIndex = new PressIndex(newspaperName, startNum);
+		pressIndexRepository.save(pressIndex);
+		System.out.println("startNum = " + pressIndex.getUpdateIndex());
 		System.out.println("pressIndex.getPress() ffff = " + pressIndex.getPress());
-		pressIndex.setUpdateIndex(startNum);
 	}
 
 	public static Industry getRandomIndustry() {

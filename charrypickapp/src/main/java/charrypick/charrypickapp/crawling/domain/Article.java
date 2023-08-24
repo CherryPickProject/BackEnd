@@ -37,6 +37,8 @@ public class Article extends BaseEntity {
 
 	private LocalDateTime uploaded_at;
 
+	private String url;
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "industry")
 	private Industry industry;
@@ -48,13 +50,14 @@ public class Article extends BaseEntity {
 	@Column(nullable = false, columnDefinition = "INTEGER DEFAULT 0")
 	private int likeCount = 0;
 
-	public Article(String contents, String title, String publisher, String reporter, LocalDateTime  uploaded_at, int likeCount, Industry industry) {
+	public Article(String contents, String title, String publisher, String reporter, LocalDateTime  uploaded_at, int likeCount,String url , Industry industry) {
 		this.contents = contents;
 		this.title = title;
 		this.publisher = publisher;
 		this.reporter = reporter;
 		this.uploaded_at = uploaded_at;
 		this.likeCount = likeCount;
+		this.url = url;
 		this.industry = industry;
 	}
 }
